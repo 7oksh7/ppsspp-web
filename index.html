@@ -53,9 +53,29 @@ footer{position:fixed;bottom:0;left:0;right:0;display:flex;gap:34px;justify-cont
 #player.on{display:block}
 #canvas{width:100%;height:100%;display:block;outline:none}
 #msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:40px;font-size:20px;line-height:1.5;pointer-events:none;white-space:pre-line}
-#home{position:absolute;top:max(14px,env(safe-area-inset-top));left:16px;border:0;border-radius:99px;padding:10px 18px;
-  background:rgba(20,26,44,.8);color:#fff;font:600 15px var(--font);cursor:pointer;opacity:0;transition:opacity .3s}
-#player.hover #home,#home:focus{opacity:1}
+#bar{position:absolute;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;gap:8px;z-index:3;opacity:0;transition:opacity .3s}
+#bar button{border:0;border-radius:99px;padding:9px 16px;background:rgba(20,26,44,.82);color:#fff;font:600 14px var(--font);cursor:pointer}
+#player.hover #bar,#bar:focus-within{opacity:1}
+@media (pointer:coarse){#bar{opacity:.6}}
+.pill{cursor:pointer}
+#touch{position:absolute;inset:0;display:none;pointer-events:none;z-index:2}
+#touch.on{display:block}
+#touch .c{position:absolute;pointer-events:auto;touch-action:none;color:#fff;font-weight:700;user-select:none;-webkit-user-select:none}
+#dpad{left:3vmin;bottom:7vmin;width:32vmin;height:32vmin;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.28)}
+#dpad::after{content:"";position:absolute;width:13vmin;height:13vmin;border-radius:50%;background:rgba(255,255,255,.32);left:calc(50% - 6.5vmin);top:calc(50% - 6.5vmin);transform:translate(var(--x,0),var(--y,0))}
+.fb{width:14vmin;height:14vmin;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.32);display:grid;place-items:center;font-size:5.5vmin}
+.sh{min-width:20vmin;height:8vmin;border-radius:14px;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.3);display:grid;place-items:center;font-size:3.4vmin;padding:0 2vmin}
+.c.p{background:rgba(255,255,255,.45)}
+#dlg{position:fixed;inset:0;display:none;place-items:center;background:rgba(3,5,10,.78);z-index:20}
+#dlg.on{display:grid}
+#box{background:#111a2e;border-radius:24px;padding:26px 30px;width:min(560px,92vw);max-height:86vh;overflow:auto;user-select:text}
+#box h2{font-size:26px;margin-bottom:12px}
+#box p{color:var(--dim);margin:8px 0;line-height:1.45}
+#box table{width:100%;border-collapse:collapse;margin:8px 0}
+#box td{padding:7px 4px;border-bottom:1px solid rgba(255,255,255,.1);font-size:15px}
+#box td:first-child{color:var(--dim);width:42%}
+#box button{border:0;border-radius:99px;padding:12px 24px;margin:10px 10px 0 0;background:#fff;color:#05070d;font:700 16px var(--font);cursor:pointer}
+#box button.x{background:rgba(255,255,255,.14);color:#fff}
 @media (max-width:700px){header,#rail,#info{padding-left:24px;padding-right:24px}footer{display:none}.tile{width:132px;height:132px}#t{font-size:32px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
@@ -65,7 +85,7 @@ footer{position:fixed;bottom:0;left:0;right:0;display:flex;gap:34px;justify-cont
 
 <header>
   <div class="tab">Games</div>
-  <div class="right"><span class="pill" id="off"><i></i><span>Checking…</span></span><span id="clock"></span></div>
+  <div class="right"><span class="pill" id="ctl">Controls</span><span class="pill" id="fs">Fullscreen</span><span class="pill" id="off"><i></i><span>Checking…</span></span><span id="clock"></span></div>
 </header>
 
 <main>
@@ -82,7 +102,21 @@ footer{position:fixed;bottom:0;left:0;right:0;display:flex;gap:34px;justify-cont
 <div id="drop">Drop your game file to add it</div>
 <input type="file" id="file" accept=".iso,.cso,.chd,.pbp" multiple hidden>
 
-<section id="player"><canvas id="canvas" tabindex="-1"></canvas><div id="msg"></div><button id="home">⌂ Home</button></section>
+<section id="player"><canvas id="canvas" tabindex="-1"></canvas><div id="msg"></div>
+  <div id="touch">
+    <div class="c" id="dpad"></div>
+    <div class="c sh" data-k="KeyQ" style="left:3vmin;top:12vmin">L</div>
+    <div class="c sh" data-k="KeyW" style="right:3vmin;top:12vmin">R</div>
+    <div class="c sh" data-k="Enter" style="left:calc(50% - 22vmin);bottom:3vmin">Select</div>
+    <div class="c sh" data-k="Space" style="left:calc(50% + 2vmin);bottom:3vmin">Start</div>
+    <div class="c fb" data-k="KeyS" style="right:12.5vmin;bottom:27vmin">△</div>
+    <div class="c fb" data-k="KeyZ" style="right:12.5vmin;bottom:7vmin">✕</div>
+    <div class="c fb" data-k="KeyA" style="right:25vmin;bottom:17vmin">□</div>
+    <div class="c fb" data-k="KeyX" style="right:3vmin;bottom:17vmin">○</div>
+  </div>
+  <div id="bar"><button id="bHome">⌂ Home</button><button id="bMenu">Menu</button><button id="bFull">⛶ Fullscreen</button><button id="bPad">Touch pad</button><button id="bMode">Stick: off</button></div>
+</section>
+<div id="dlg"><div id="box"></div></div>
 
 <script>
 // Where the emulator build lives (same origin, so it can be cached and run offline).
@@ -159,6 +193,8 @@ addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') focus(idx - 1);
   else if (e.key === 'Enter') activate();
   else if (e.key === 'Delete' || e.key === 'Backspace') removeCurrent();
+  else if (e.key === 'f' || e.key === 'F') toggleFull();
+  else if (e.key === 'c' || e.key === 'C') controlsDialog();
 });
 
 /* ---------- gamepad navigation (hub only; the emulator reads the pad itself in game) ---------- */
@@ -178,7 +214,9 @@ let last = 0, held = {};
 
 /* ---------- emulator ---------- */
 async function launch(g) {
+  if (!(await engineReady())) { engineDialog(); return; }
   playing = true; $('player').classList.add('on'); $('msg').textContent = 'Starting…';
+  goFull(); $('touch').classList.toggle('on', touchOn);
   if (!crossOriginIsolated) { $('msg').textContent = 'Setting up offline mode…\nThe page will reload once.'; setTimeout(() => location.reload(), 900); return; }
   try {
     const data = new Uint8Array(await g.blob.arrayBuffer());
@@ -199,7 +237,110 @@ async function launch(g) {
     document.body.append(s);
   } catch (err) { $('msg').textContent = 'Couldn’t start this game.\n' + err.message; }
 }
-$('home').onclick = () => location.reload();
+/* ---------- fullscreen ---------- */
+const goFull = () => { const el = playing ? $('player') : document.documentElement;
+  try { (el.requestFullscreen || el.webkitRequestFullscreen).call(el)?.catch?.(() => {}); } catch {}
+  screen.orientation?.lock?.('landscape').catch(() => {}); };
+const toggleFull = () => document.fullscreenElement ? document.exitFullscreen() : goFull();
+
+/* ---------- on-screen controls: send the same keys the emulator already listens to ---------- */
+let touchOn = matchMedia('(pointer:coarse)').matches, stick = false;
+const KC = { ArrowUp:38, ArrowDown:40, ArrowLeft:37, ArrowRight:39, KeyZ:90, KeyX:88, KeyA:65, KeyS:83, KeyQ:81, KeyW:87,
+  Space:32, Enter:13, KeyI:73, KeyJ:74, KeyK:75, KeyL:76, Escape:27 };
+function fire(type, code) {
+  const kc = KC[code], key = code.startsWith('Key') ? code.slice(3).toLowerCase() : code === 'Space' ? ' ' : code;
+  const e = new KeyboardEvent(type, { code, key, keyCode: kc, which: kc, bubbles: true, cancelable: true });
+  ['keyCode', 'which'].forEach(p => { if (e[p] !== kc) Object.defineProperty(e, p, { get: () => kc }); });
+  $('canvas').dispatchEvent(e);
+}
+const down = new Set();
+const press = c => { if (!down.has(c)) { down.add(c); fire('keydown', c); } };
+const rel = c => { if (down.delete(c)) fire('keyup', c); };
+document.querySelectorAll('#touch [data-k]').forEach(b => {
+  const c = b.dataset.k, up = () => { b.classList.remove('p'); rel(c); };
+  b.addEventListener('pointerdown', e => { e.preventDefault(); b.setPointerCapture(e.pointerId); b.classList.add('p'); press(c); });
+  b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+});
+const dp = $('dpad'); let drag = false;
+const dpKeys = () => stick ? ['KeyI', 'KeyK', 'KeyJ', 'KeyL'] : ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+function dpMove(e) {
+  const r = dp.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * 2 - 1, y = (e.clientY - r.top) / r.height * 2 - 1;
+  const [u, d, l, rt] = dpKeys();
+  [[u, y < -.3], [d, y > .3], [l, x < -.3], [rt, x > .3]].forEach(([k, on]) => on ? press(k) : rel(k));
+  dp.style.setProperty('--x', Math.max(-1, Math.min(1, x)) * 9 + 'vmin'); dp.style.setProperty('--y', Math.max(-1, Math.min(1, y)) * 9 + 'vmin');
+}
+const dpEnd = () => { drag = false; [...KC && dpKeys(), 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyI', 'KeyJ', 'KeyK', 'KeyL'].forEach(rel);
+  dp.style.removeProperty('--x'); dp.style.removeProperty('--y'); };
+dp.addEventListener('pointerdown', e => { e.preventDefault(); dp.setPointerCapture(e.pointerId); drag = true; dpMove(e); });
+dp.addEventListener('pointermove', e => { if (drag) dpMove(e); });
+dp.addEventListener('pointerup', dpEnd); dp.addEventListener('pointercancel', dpEnd);
+$('bHome').onclick = () => location.reload();
+$('bMenu').onclick = () => { press('Escape'); setTimeout(() => rel('Escape'), 80); };
+$('bFull').onclick = toggleFull;
+$('bPad').onclick = () => { touchOn = !touchOn; $('touch').classList.toggle('on', touchOn); };
+$('bMode').onclick = () => { dpEnd(); stick = !stick; $('bMode').textContent = 'Stick: ' + (stick ? 'on' : 'off'); };
+addEventListener('gamepadconnected', () => { touchOn = false; $('touch').classList.remove('on'); });
+
+/* ---------- dialogs: controls + engine install ---------- */
+const closeDlg = () => $('dlg').classList.remove('on');
+const openDlg = h => { $('box').innerHTML = h + '<button class="x" id="dx">Close</button>'; $('dlg').classList.add('on'); $('dx').onclick = closeDlg; };
+$('dlg').onclick = e => { if (e.target === $('dlg')) closeDlg(); };
+addEventListener('keydown', e => { if (e.key === 'Escape' && !playing) closeDlg(); });
+function controlsDialog() {
+  openDlg(`<h2>Controls</h2><table>
+  <tr><td>Phone / tablet</td><td>On-screen pad appears in game. “Touch pad” hides it, “Stick” switches the left pad to the analog stick.</td></tr>
+  <tr><td>Controller</td><td>Plug in or pair one. D-pad, ✕ ○ □ △, L and R work in game. In this menu: ✕ select, △ remove, PS button = Home.</td></tr>
+  <tr><td>D-pad</td><td>Arrow keys</td></tr>
+  <tr><td>✕ ○ □ △</td><td>Z, X, A, S</td></tr>
+  <tr><td>L / R</td><td>Q, W</td></tr>
+  <tr><td>Start / Select</td><td>Space, Enter</td></tr>
+  <tr><td>Analog stick</td><td>I, J, K, L</td></tr>
+  <tr><td>Pause, speed</td><td>Esc, Tab, `</td></tr>
+  <tr><td>Fullscreen</td><td>F in this menu, or the Fullscreen button</td></tr></table>`);
+}
+const REMOTE = 'https://root-hunter.github.io/ppsspp-web/build-wasm/';
+const ENGINE_FILES = [ENGINE.js, ENGINE.wasm, ENGINE.data];
+async function engineReady() {
+  if (await caches.match(ENGINE.dir + ENGINE.wasm, { ignoreSearch: true })) return true;
+  try { return (await fetch(ENGINE.dir + ENGINE.js, { method: 'HEAD' })).ok; } catch { return false; }
+}
+async function storeEngine(name, blob) {
+  const type = name.endsWith('.wasm') ? 'application/wasm' : name.endsWith('.js') ? 'text/javascript' : 'application/octet-stream';
+  await (await caches.open('psp5-engine')).put(new Request(new URL(ENGINE.dir + name, location.href)), new Response(blob, { headers: { 'Content-Type': type } }));
+}
+async function fetchBlob(url, onp) {
+  const r = await fetch(url); if (!r.ok) throw new Error(r.status);
+  const tot = +r.headers.get('content-length') || 0, rd = r.body.getReader(), parts = []; let n = 0;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); n += value.length; onp(n, tot); }
+  return new Blob(parts);
+}
+async function downloadEngine() {
+  const st = $('eSt');
+  try {
+    for (const f of ENGINE_FILES) {
+      let blob;
+      for (const base of [ENGINE.dir, REMOTE]) {
+        try { blob = await fetchBlob(base + f, (n, t) => st.textContent = `${f}: ${mb(n)}${t ? ' of ' + mb(t) : ''}`); break; } catch {}
+      }
+      if (!blob) throw new Error('Couldn’t download ' + f);
+      await storeEngine(f, blob);
+    }
+    st.textContent = 'Done. The engine is saved on this device and works offline.'; offlineStatus();
+  } catch (e) { st.textContent = e.message + '. Check your connection and try again.'; }
+}
+async function engineDialog() {
+  const ok = await engineReady();
+  openDlg(`<h2>Emulator engine</h2>
+  <p>${ok ? 'Saved on this device. It works offline.' : 'Not saved yet. Download it once (about 36 MB) and it stays on this device, like your games.'}</p>
+  <button id="eDl">${ok ? 'Download again' : 'Download engine'}</button><button id="eFile">Choose engine files</button>
+  <p id="eSt">You can also pick PPSSPPSDL.js, .wasm and .data from your storage.</p><input type="file" id="eIn" multiple hidden>`);
+  $('eDl').onclick = downloadEngine; $('eFile').onclick = () => $('eIn').click();
+  $('eIn').onchange = async e => {
+    for (const f of e.target.files) if (ENGINE_FILES.includes(f.name)) await storeEngine(f.name, f);
+    $('eSt').textContent = 'Saved the files you picked.'; offlineStatus();
+  };
+}
+$('ctl').onclick = controlsDialog; $('fs').onclick = toggleFull; $('off').onclick = engineDialog;
 $('player').addEventListener('mousemove', () => { $('player').classList.add('hover'); clearTimeout(window._h); window._h = setTimeout(() => $('player').classList.remove('hover'), 2500); });
 
 /* ---------- clock, offline status, service worker ---------- */
@@ -209,7 +350,7 @@ tick(); setInterval(tick, 20000);
 async function offlineStatus() {
   const ok = await caches.match(ENGINE.dir + ENGINE.wasm, { ignoreSearch: true });
   $('off').classList.toggle('ok', !!ok);
-  $('off').lastChild.textContent = ok ? 'Ready offline' : (navigator.onLine ? 'Saving for offline…' : 'Emulator not saved yet');
+  $('off').lastChild.textContent = ok ? 'Ready offline' : 'Install engine';
 }
 async function warmEngine() {   // first online visit: pull the emulator into the cache
   await Promise.allSettled([ENGINE.js, ENGINE.wasm, ENGINE.data].map(f => fetch(ENGINE.dir + f)));
