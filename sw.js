@@ -1,5 +1,5 @@
 // Offline cache + cross-origin isolation (the threaded emulator needs SharedArrayBuffer).
-const VERSION = 'psp5-v2';
+const VERSION = 'psp5-v3';
 const ENGINE_CACHE = 'psp5-engine';   // never deleted on update: holds the installed emulator files
 const SHELL = ['./', 'index.html', 'manifest.webmanifest'];
 
@@ -35,15 +35,14 @@ self.addEventListener('fetch', e => {
       if (stored) return isolate(stored);
     }
     const cache = await caches.open(isEngine ? ENGINE_CACHE : VERSION);
-    const hit = await cache.match(req, { ignoreSearch: true });
-    const refresh = fetch(req).then(res => {
-      if (res.ok && res.status === 200) cache.put(req, res.clone());
-      return res;
-    });
-    if (hit) { refresh.catch(() => {}); return isolate(hit); }
     try {
-      return isolate(await refresh);
+      // Network first, so a fixed page always replaces a stale one; cache is the offline fallback.
+      const res = await fetch(req);
+      if (res.ok && res.status === 200) cache.put(req, res.clone());
+      return isolate(res);
     } catch (err) {
+      const hit = await cache.match(req, { ignoreSearch: true });
+      if (hit) return isolate(hit);
       const fallback = await (await caches.open(VERSION)).match('index.html');
       if (req.mode === 'navigate' && fallback) return isolate(fallback);
       return new Response('Offline and not cached yet.', { status: 503 });
