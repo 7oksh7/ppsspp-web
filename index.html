@@ -20,7 +20,7 @@ html,body{height:100%;background:var(--bg);color:var(--ink);font-family:var(--fo
     linear-gradient(#070b18,#03050a)}
 #bg::after{content:"";position:absolute;inset:0;opacity:.35;
   background:repeating-linear-gradient(115deg,transparent 0 120px,rgba(255,255,255,.03) 120px 121px)}
-header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
+header{position:fixed;z-index:6;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;
   padding:max(28px,env(safe-area-inset-top)) 64px 0}
 .tab{font-size:20px;font-weight:600;position:relative;padding-bottom:10px}
 .tab::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px;background:var(--ink)}
@@ -214,21 +214,31 @@ let last = 0, held = {};
 })(0);
 
 /* ---------- emulator ---------- */
+const logLines = [];
+const show = l => { logLines.push(String(l).slice(0, 90)); if (logLines.length > 6) logLines.shift();
+  if ($('msg').textContent.startsWith('Starting')) $('msg').textContent = 'Starting…\n' + logLines.join('\n'); };
+const SIMD = new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11]);
 async function launch(g) {
   if (!(await engineReady())) { engineDialog(); return; }
   playing = true; $('player').classList.add('on'); $('msg').textContent = 'Starting…';
   goFull(); $('touch').classList.toggle('on', touchOn);
   if (!crossOriginIsolated) { $('msg').textContent = 'Setting up offline mode…\nThe page will reload once.'; setTimeout(() => location.reload(), 900); return; }
+  if (typeof WebAssembly !== 'object' || !WebAssembly.validate(SIMD)) {
+    $('msg').textContent = 'This browser can’t run the emulator.\nIt needs WebAssembly SIMD. Update Chrome or try another browser.'; return; }
+  if (typeof SharedArrayBuffer === 'undefined') {
+    $('msg').textContent = 'This browser blocks shared memory, which the emulator needs.\nTry Chrome, and open the site from its https link.'; return; }
+  setTimeout(() => { if ($('msg').textContent.startsWith('Starting'))
+    $('msg').textContent += '\n\nStill starting. Big games can run out of memory on some devices.\nTry a smaller game or a newer browser.'; }, 25000);
   try {
-    const data = new Uint8Array(await g.blob.arrayBuffer());
+    let data = new Uint8Array(await g.blob.arrayBuffer());
     const path = '/games/' + g.name.replace(/[^\w.\- ]/g, '_');
     g.played = Date.now(); tx('readwrite', s => s.put(g));
     window.Module = {
       canvas: $('canvas'),
       arguments: [path],
       locateFile: p => ENGINE.dir + p,
-      print: console.log, printErr: console.warn,
-      preRun: [() => { const FS = window.Module.FS || window.FS; try { FS.mkdir('/games'); } catch {} FS.writeFile(path, data); }],
+      print: show, printErr: show,
+      preRun: [() => { const FS = window.Module.FS || window.FS; try { FS.mkdir('/games'); } catch {} FS.writeFile(path, data); data = null; }],
       onAbort: why => { $('msg').textContent = 'The emulator stopped.\n' + why; },
       postRun: [() => { $('msg').textContent = ''; $('canvas').focus(); }]
     };
