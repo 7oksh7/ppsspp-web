@@ -336,8 +336,22 @@ async function engineDialog() {
   <p id="eSt">You can also pick PPSSPPSDL.js, .wasm and .data from your storage.</p><input type="file" id="eIn" multiple hidden>`);
   $('eDl').onclick = downloadEngine; $('eFile').onclick = () => $('eIn').click();
   $('eIn').onchange = async e => {
-    for (const f of e.target.files) if (ENGINE_FILES.includes(f.name)) await storeEngine(f.name, f);
-    $('eSt').textContent = 'Saved the files you picked.'; offlineStatus();
+    const st = $('eSt'), saved = [], skipped = [];
+    st.textContent = 'Reading files…';
+    try {
+      for (const f of e.target.files) {            // match by type, so “PPSSPPSDL(1).js” and renamed copies still work
+        const n = f.name.toLowerCase();
+        const target = n.includes('.wasm') ? ENGINE.wasm : n.includes('.data') ? ENGINE.data : n.includes('.js') ? ENGINE.js : null;
+        if (!target) { skipped.push(f.name); continue; }
+        st.textContent = 'Saving ' + target + ' (' + mb(f.size) + ')…';
+        await storeEngine(target, f); saved.push(target);
+      }
+    } catch (err) { st.textContent = 'Couldn’t save: ' + err.message; return; }
+    const missing = ENGINE_FILES.filter(x => !saved.includes(x));
+    st.textContent = (saved.length ? 'Saved: ' + saved.join(', ') + '. ' : 'Nothing saved. ')
+      + (skipped.length ? 'Ignored: ' + skipped.join(', ') + '. ' : '')
+      + (missing.length && saved.length ? 'Still needed: ' + missing.join(', ') + '.' : '');
+    e.target.value = ''; offlineStatus();
   };
 }
 $('ctl').onclick = controlsDialog; $('fs').onclick = toggleFull; $('off').onclick = engineDialog;
